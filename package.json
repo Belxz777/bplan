@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
-    "build": "bun run build.ts"
+    "build": "bun run build.ts",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "bun-plugin-tailwind": "^0.1.2",
@@ -16,17 +17,11 @@
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10.10.0",
-    "eslint-plugin-react": "^7.37.5",
-    "globals": "^17.12.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.5.1",
-    "prettier": "^3.9.7",
-    "typescript-eslint": "^8.70.0"
+    "jiti": "^2.7.0",
+    "prettier": "^3.9.7"
   },
   "peerDependencies": {
     "typescript": "^7"
