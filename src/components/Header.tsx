@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Database className="w-4 h-4" />
           </div>
           <span className="font-semibold text-[#f0f6fc] text-[15px] tracking-tight">
-            BPlan
+            Plan B
           </span>
         </div>
 
@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="h-8 px-2.5 rounded-md bg-[#0284c7] hover:bg-[#38bdf8] text-white hover:text-[#0b0f19] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Задача</span>
+            <span> Задача</span>
           </button>
         )}
 
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="h-8 px-2.5 rounded-md bg-[#0284c7] hover:bg-[#38bdf8] text-white hover:text-[#0b0f19] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ План</span>
+            <span> План</span>
           </button>
         )}
 
@@ -120,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="h-8 px-2.5 rounded-md bg-[#0284c7] hover:bg-[#38bdf8] text-white hover:text-[#0b0f19] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Пользователь</span>
+            <span> Пользователь</span>
           </button>
         )}
 
@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="h-8 px-2.5 rounded-md bg-[#0284c7] hover:bg-[#38bdf8] text-white hover:text-[#0b0f19] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Должность</span>
+            <span> Должность</span>
           </button>
         )}
 

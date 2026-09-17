@@ -214,7 +214,7 @@ export const TableView: React.FC<TableViewProps> = ({
               className="h-7 px-2.5 rounded bg-[#0284c7]/20 hover:bg-[#0284c7] border border-[#38bdf8]/40 text-[#38bdf8] hover:text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Добавить</span>
+              <span> Добавить</span>
             </button>
           </div>
         </div>

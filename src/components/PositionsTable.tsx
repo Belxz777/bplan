@@ -146,7 +146,7 @@ export const PositionsTableView: React.FC<PositionsTableViewProps> = ({
             className="px-3 py-1.5 bg-[#38bdf8] hover:bg-[#0284c7] text-[#0b0f19] font-medium text-xs rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Должность</span>
+            <span> Должность</span>
           </button>
         </div>
       </div>

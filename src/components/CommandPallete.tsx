@@ -198,7 +198,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   <Plus className="w-3.5 h-3.5 text-[#38bdf8]" />
                   <span>Создать задачу</span>
                 </span>
-                <span className="text-[11px] text-[#6e7681]">+ Задача</span>
+                <span className="text-[11px] text-[#6e7681]"> Задача</span>
               </button>
 
               <button
@@ -212,7 +212,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   <Plus className="w-3.5 h-3.5 text-[#38bdf8]" />
                   <span>Создать план</span>
                 </span>
-                <span className="text-[11px] text-[#6e7681]">+ План</span>
+                <span className="text-[11px] text-[#6e7681]"> План</span>
               </button>
 
               {onOpenNewUser && (
@@ -227,7 +227,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     <Plus className="w-3.5 h-3.5 text-[#38bdf8]" />
                     <span>Создать пользователя</span>
                   </span>
-                  <span className="text-[11px] text-[#6e7681]">+ Пользователь</span>
+                  <span className="text-[11px] text-[#6e7681]">Пользователь</span>
                 </button>
               )}
 
