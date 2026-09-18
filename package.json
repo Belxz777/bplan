@@ -7,7 +7,11 @@
     "dev": "bun --hot src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
     "build": "bun run build.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:seed": "bun run ./api/seed/run.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun --bun drizzle-kit migrate"
+
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
