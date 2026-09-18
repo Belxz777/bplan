@@ -104,9 +104,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           email: email.trim(),
           username: username.trim(),
           password,
-          full_name: fullName.trim() || null,
-          position_id: positionId ? Number(positionId) : null,
-        }),
+      }),
       });
 
       const data = await res.json();
@@ -125,26 +123,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   };
 
-  // Quick Demo Login helper
-  const handleQuickLogin = (login: string, pass: string) => {
-    setLoginInput(login);
-    setPassword(pass);
-    setError(null);
-
-    setLoading(true);
-    fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login, password: pass }),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Ошибка входа');
-        onLoginSuccess(data.user);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
 
   return (
     <div className="min-h-screen w-full bg-[#0b0f19] text-[#f0f6fc] flex flex-col justify-center items-center px-4 py-8 relative select-none">
@@ -161,9 +139,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <h1 className="text-xl font-bold tracking-tight text-[#f0f6fc]">
             BPlan Управление
           </h1>
-          <p className="text-xs text-[#8b949e] mt-1">
-            Система учета задач, планов, сотрудников и должностей
-          </p>
+       
         </div>
 
         {/* Tab selector: Вход / Регистрация */}
@@ -314,41 +290,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-[#c9d1d9] mb-1">
-                ФИО (полное имя)
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Иван Петров"
-                className="w-full bg-[#0b0f19] border border-[#30363d] focus:border-[#38bdf8] rounded-lg px-3 py-2 text-xs text-[#f0f6fc] placeholder-[#6e7681] outline-none transition-colors"
-              />
-            </div>
+            
 
-            <div>
-              <label className="block text-xs font-medium text-[#c9d1d9] mb-1">
-                Должность
-              </label>
-              <div className="relative">
-                <select
-                  value={positionId}
-                  onChange={(e) =>
-                    setPositionId(e.target.value ? Number(e.target.value) : '')
-                  }
-                  className="w-full bg-[#0b0f19] border border-[#30363d] focus:border-[#38bdf8] rounded-lg px-3 py-2 pl-9 text-xs text-[#f0f6fc] outline-none transition-colors cursor-pointer"
-                >
-                  <option value="">Без должности</option>
-                  {positions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title} ({p.department})
-                    </option>
-                  ))}
-                </select>
-                <Briefcase className="w-4 h-4 text-[#6e7681] absolute left-3 top-2.5" />
-              </div>
-            </div>
+  
 
             <div>
               <label className="block text-xs font-medium text-[#c9d1d9] mb-1">
@@ -391,48 +335,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         )}
 
         {/* Quick Demo Credentials */}
-        <div className="mt-6 pt-5 border-t border-[#21262d]">
-          <div className="flex items-center gap-1.5 text-[11px] text-[#8b949e] mb-2.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#38bdf8]" />
-            <span className="font-medium">Демо-доступ в один клик:</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin', 'admin12345')}
-              className="text-left px-2.5 py-1.5 bg-[#0b0f19] hover:bg-[#21262d] border border-[#30363d] rounded-md transition-colors cursor-pointer group"
-            >
-              <div className="text-[11px] font-medium text-[#f0f6fc] group-hover:text-[#38bdf8]">
-                Администратор
-              </div>
-              <div className="text-[10px] text-[#8b949e]">admin / admin12345</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('manager', 'manager123')}
-              className="text-left px-2.5 py-1.5 bg-[#0b0f19] hover:bg-[#21262d] border border-[#30363d] rounded-md transition-colors cursor-pointer group"
-            >
-              <div className="text-[11px] font-medium text-[#f0f6fc] group-hover:text-[#38bdf8]">
-                Менеджер
-              </div>
-              <div className="text-[10px] text-[#8b949e]">manager / manager123</div>
-            </button>
-          </div>
-
-          {onContinueAsGuest && (
-            <div className="mt-3 text-center">
-              <button
-                type="button"
-                onClick={onContinueAsGuest}
-                className="text-[11px] text-[#8b949e] hover:text-[#c9d1d9] underline cursor-pointer"
-              >
-                Продолжить в гостевом режиме
-              </button>
-            </div>
-          )}
-        </div>
+      
       </div>
     </div>
   );

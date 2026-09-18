@@ -10,7 +10,10 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "bun-plugin-tailwind": "^0.1.2",
+    "drizzle-orm": "^0.45.2",
+    "jose": "^6.2.12",
     "lucide-react": "^1.47.0",
     "react": "^19",
     "react-dom": "^19",
@@ -20,6 +23,7 @@
     "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
     "jiti": "^2.7.0",
     "prettier": "^3.9.7"
   },

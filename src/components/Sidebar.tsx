@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CheckSquare,
   FolderKanban,
@@ -10,6 +10,9 @@ import {
   SignalLow,
   Shield,
   Award,
+  X,
+  PanelLeftOpen,
+  PanelLeftClose
 } from 'lucide-react';
 import type {
   EntityView,
@@ -25,6 +28,8 @@ interface SidebarProps {
   onViewChange: (view: EntityView) => void;
   stats: DatabaseStats | null;
   activeFilters: ActiveFilters;
+  toogle: () => void;
+  isOpened: boolean;
   onFilterChange: (filters: Partial<ActiveFilters>) => void;
   onClearFilters: () => void;
 }
@@ -33,6 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onViewChange,
   stats,
+  isOpened,
+  toogle,
   activeFilters,
   onFilterChange,
 }) => {
@@ -42,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentView === 'tasks' && activeFilters.priority === priority;
   const isLifecycleActive = (lifecycle: PlanStatus) =>
     currentView === 'plans' && activeFilters.planLifecycle === lifecycle;
-
+  
   const handleStatusClick = (status: TaskStatus) => {
     if (currentView !== 'tasks') {
       onViewChange('tasks');
@@ -65,25 +72,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const handleLifecycleClick = (lifecycle: PlanStatus) => {
-    if (currentView !== 'plans') {
-      onViewChange('plans');
-    }
-    if (activeFilters.planLifecycle === lifecycle) {
-      onFilterChange({ planLifecycle: undefined });
-    } else {
-      onFilterChange({ planLifecycle: lifecycle });
-    }
-  };
+
 
   return (
-    <aside className="w-56 shrink-0 bg-[#0d1117] border-r border-[#21262d] flex flex-col justify-between overflow-y-auto select-none">
-      <div className="p-3 flex flex-col gap-5">
+        <div className="relative shrink-0 h-full">
+<div
+  className={`
+    relative shrink-0 h-full
+    transition-[width]
+    duration-200
+    overflow-hidden
+    ease-in-out
+    ${isOpened  ? 'w-56' : 'w-0'}
+  `}
+>
+  <aside
+    className="
+      absolute
+      inset-y-0
+      left-0
+      w-56
+      bg-[#0d1117]
+      border-r
+      border-[#21262d]
+      flex
+      flex-col
+      justify-between
+      overflow-hidden
+      select-none
+    "
+  >
+   <div className="w-56 h-full p-3 flex flex-col gap-5">
         {/* Primary Entities Navigation */}
         <div>
+        
           <div className="px-2 pb-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6e7681]">
             Разделы
-          </div>
+          </div>  
           <nav className="flex flex-col gap-0.5">
             {/* 1. Tasks */}
             <button
@@ -101,15 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <CheckSquare className="w-4 h-4" />
                 <span>Задачи</span>
               </span>
-              <span
-                className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${
-                  currentView === 'tasks'
-                    ? 'bg-[#38bdf8]/10 text-[#38bdf8]'
-                    : 'bg-[#1c2026] text-[#6e7681]'
-                }`}
-              >
-                {stats?.totalTasks ?? 0}
-              </span>
+     
             </button>
 
             {/* 2. Plans */}
@@ -128,67 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <FolderKanban className="w-4 h-4" />
                 <span>Планы</span>
               </span>
-              <span
-                className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${
-                  currentView === 'plans'
-                    ? 'bg-[#38bdf8]/10 text-[#38bdf8]'
-                    : 'bg-[#1c2026] text-[#6e7681]'
-                }`}
-              >
-                {stats?.totalPlans ?? 0}
-              </span>
-            </button>
-
-            {/* 3. Users */}
-            <button
-              onClick={() => {
-                onViewChange('users');
-              }}
-              className={`w-full h-8 px-2.5 rounded-md flex items-center justify-between text-xs font-medium transition-colors cursor-pointer ${
-                currentView === 'users'
-                  ? 'bg-[#262a31] text-[#38bdf8]'
-                  : 'text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#1c2026]'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span>Пользователи</span>
-              </span>
-              <span
-                className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${
-                  currentView === 'users'
-                    ? 'bg-[#38bdf8]/10 text-[#38bdf8]'
-                    : 'bg-[#1c2026] text-[#6e7681]'
-                }`}
-              >
-                {stats?.totalUsers ?? 0}
-              </span>
-            </button>
-
-            {/* 4. Positions */}
-            <button
-              onClick={() => {
-                onViewChange('positions');
-              }}
-              className={`w-full h-8 px-2.5 rounded-md flex items-center justify-between text-xs font-medium transition-colors cursor-pointer ${
-                currentView === 'positions'
-                  ? 'bg-[#262a31] text-[#38bdf8]'
-                  : 'text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#1c2026]'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                <span>Должности</span>
-              </span>
-              <span
-                className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${
-                  currentView === 'positions'
-                    ? 'bg-[#38bdf8]/10 text-[#38bdf8]'
-                    : 'bg-[#1c2026] text-[#6e7681]'
-                }`}
-              >
-                {stats?.totalPositions ?? 0}
-              </span>
+          
             </button>
           </nav>
         </div>
@@ -213,9 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="w-1.5 h-1.5 rounded-full bg-[#6e7681]" />
                     <span>В очереди</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#6e7681]">
-                    {stats?.statusCounts.todo ?? 0}
-                  </span>
+                
                 </button>
 
                 <button
@@ -232,13 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       В работе
                     </span>
                   </span>
-                  <span
-                    className={`text-[11px] font-mono ${
-                      isStatusActive('in_progress') ? 'text-[#38bdf8]' : 'text-[#6e7681]'
-                    }`}
-                  >
-                    {stats?.statusCounts.in_progress ?? 0}
-                  </span>
+               
                 </button>
 
                 <button
@@ -253,9 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
                     <span>Готово</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#6e7681]">
-                    {stats?.statusCounts.done ?? 0}
-                  </span>
+             
                 </button>
 
                 <button
@@ -270,9 +217,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="w-1.5 h-1.5 rounded-full bg-[#f87171]" />
                     <span>Отменено</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#6e7681]">
-                    {stats?.statusCounts.cancelled ?? 0}
-                  </span>
+            
                 </button>
               </div>
             </div>
@@ -294,9 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <AlertCircle className="w-3.5 h-3.5 text-[#f87171]" />
                     <span>Критический</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#f87171]">
-                    {stats?.priorityCounts.critical ?? 0}
-                  </span>
+                 
                 </button>
 
                 <button
@@ -311,9 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <SignalHigh className="w-3.5 h-3.5 text-[#fbbf24]" />
                     <span>Высокий</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#6e7681]">
-                    {stats?.priorityCounts.high ?? 0}
-                  </span>
+           
                 </button>
 
                 <button
@@ -328,9 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <SignalMedium className="w-3.5 h-3.5 text-[#38bdf8]" />
                     <span>Средний</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#6e7681]">
-                    {stats?.priorityCounts.medium ?? 0}
-                  </span>
+             
                 </button>
 
                 <button
@@ -345,9 +284,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <SignalLow className="w-3.5 h-3.5 text-[#6e7681]" />
                     <span>Низкий</span>
                   </span>
-                  <span className="text-[11px] font-mono text-[#6e7681]">
-                    {stats?.priorityCounts.low ?? 0}
-                  </span>
+        
                 </button>
               </div>
             </div>
@@ -367,23 +304,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Position quick view hints */}
-        {currentView === 'positions' && (
-          <div className="p-3 bg-[#161b22] border border-[#21262d] rounded-lg text-xs flex flex-col gap-2">
-            <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6e7681] flex items-center gap-1.5">
-              <Award className="w-3 h-3 text-[#38bdf8]" />
-              <span>Штатная структура</span>
-            </div>
-            <p className="text-[11px] text-[#8b949e] leading-relaxed">
-              Справочник квалификаций от Intern до Head по отделам разработки, продукта и инфраструктуры.
-            </p>
-          </div>
-        )}
+      
       </div>
 
       {/* Connection Status Footer */}
-      <div className="p-3 border-t border-[#21262d] bg-[#161b22]/40">
-        <div className="flex items-center justify-between text-[11px] text-[#6e7681]">
+<div className="w-56 p-3 border-t border-[#21262d] bg-[#161b22]/40">        <div className="flex items-center justify-between text-[11px] text-[#6e7681]">
           <span>Подключение к БД</span>
           <span className="text-[#4ade80] flex items-center gap-1.5 font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" />
@@ -392,5 +317,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
     </aside>
+    </div>
+      <button
+    type="button"
+    onClick={toogle}
+    className="
+      absolute
+      top-3
+      left-[calc(100%-12px)]
+      z-30
+      w-6
+      h-6
+      rounded-md
+      flex
+      items-center
+      justify-center
+      bg-[#161b22]
+      border
+      border-[#30363d]
+      text-[#8b949e]
+      hover:text-[#f0f6fc]
+      hover:bg-[#21262d]
+      transition-colors
+      cursor-pointer
+    "
+    title={isOpened ? 'Скрыть боковую панель' : 'Показать боковую панель'}
+  >
+    {isOpened ? (
+      <PanelLeftClose className="w-3.5 h-3.5" />
+    ) : (
+      <PanelLeftOpen className="w-3.5 h-3.5" />
+    )}
+  </button>
+    </div>
+    
   );
 };

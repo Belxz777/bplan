@@ -1,13 +1,8 @@
 import { serve } from "bun";
 import index from "./index.html";
-import { Database } from 'bun:sqlite'
-import { db } from "../api/db";
 import { routes } from "../api/routes";
-import { seed } from "../api/seed/seed";
-await seed();
-console.log(
-  db.query("SELECT name FROM sqlite_master WHERE type = 'table'").all()
-);
+
+
 const server = serve({
   routes: {
     ...routes,

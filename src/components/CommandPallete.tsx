@@ -18,7 +18,6 @@ interface CommandPaletteProps {
   tasks: Task[];
   plans: Plan[];
   users?: User[];
-  positions?: Position[];
   onSelectTask: (task: Task) => void;
   onSelectPlan: (plan: Plan) => void;
   onSelectUser?: (user: User) => void;
@@ -39,7 +38,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   tasks,
   plans,
   users = [],
-  positions = [],
   onSelectTask,
   onSelectPlan,
   onSelectUser,
@@ -99,11 +97,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       (u.full_name && u.full_name.toLowerCase().includes(query.toLowerCase()))
   );
 
-  const filteredPositions = positions.filter(
-    (p) =>
-      p.title.toLowerCase().includes(query.toLowerCase()) ||
-      p.department.toLowerCase().includes(query.toLowerCase())
-  );
+
 
   return (
     <div
@@ -168,16 +162,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 <Users className="w-3.5 h-3.5 text-[#38bdf8]" />
                 <span>Пользователи ({users.length})</span>
               </button>
-              <button
-                onClick={() => {
-                  onClose();
-                  onViewChange('positions');
-                }}
-                className="w-full text-left px-3 py-1.5 rounded-md hover:bg-[#161b22] flex items-center gap-2 text-[#f0f6fc] cursor-pointer"
-              >
-                <Briefcase className="w-3.5 h-3.5 text-[#38bdf8]" />
-                <span>Должности ({positions.length})</span>
-              </button>
+            
             </div>
           </div>
 
@@ -355,35 +340,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {/* Matching Positions */}
-          {filteredPositions.length > 0 && (
-            <div>
-              <div className="px-2 py-1 text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
-                Найденные должности ({filteredPositions.length})
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {filteredPositions.slice(0, 4).map((pos) => (
-                  <button
-                    key={pos.id}
-                    onClick={() => {
-                      onClose();
-                      onViewChange('positions');
-                      if (onSelectPosition) onSelectPosition(pos);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-md hover:bg-[#161b22] flex items-center justify-between text-[#f0f6fc] cursor-pointer font-sans"
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <Briefcase className="w-3.5 h-3.5 text-[#38bdf8]" />
-                      <span className="truncate font-medium">{pos.title}</span>
-                    </span>
-                    <span className="text-[10px] font-mono text-[#6e7681] shrink-0 ml-2 uppercase">
-                      {pos.department}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+      
         </div>
       </div>
     </div>

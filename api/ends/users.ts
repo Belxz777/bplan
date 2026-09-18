@@ -1,92 +1,86 @@
+import { and, eq, ne, or, sql } from "drizzle-orm";
 import { db } from "../db";
+import { users } from "../db/schema";
+import { signAccessToken } from "../encrypt/jwt";
+import { isSelfOrLevel, requireAuth } from "../middleware/auth";
+import { clearAccessTokenCookie, setAccessTokenCookie } from "../encrypt/cookie";
 
-const ROLES = ["admin", "manager", "user"];
-const STATUSES = ["active", "inactive", "banned"];
+const LEVELS = [1, 2, 3] as const;
+const MAX_LEVEL = 3; // высший уровень доступа — аналог "admin" из старой логики
 
 // колонки, безопасные для отдачи наружу (без password_hash)
-const PUBLIC_FIELDS = `
-  users.id,
-  users.email,
-  users.username,
-  users.full_name,
-  users.avatar_url,
-  users.position_id,
-  users.role,
-  users.status,
-  users.last_login_at,
-  users.created_at,
-  users.updated_at
-`;
+// формат для relational query API: db.query.users.findFirst({ columns: {...} })
+const PUBLIC_COLUMNS = {
+  id: true,
+  email: true,
+  username: true,
+  level: true,
+  lastLoginAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+// формат для core query builder: .insert(...).returning({...}) / .update(...).returning({...})
+// тут нужны ссылки на реальные колонки, а не { field: true }
+const PUBLIC_RETURNING = {
+  id: users.id,
+  email: users.email,
+  username: users.username,
+  level: users.level,
+  lastLoginAt: users.lastLoginAt,
+  createdAt: users.createdAt,
+  updatedAt: users.updatedAt,
+};
+
+function parseId(raw: string): number | null {
+  const id = Number(raw);
+  return Number.isInteger(id) ? id : null;
+}
 
 export const userRoutes = {
   "/api/users": {
-    GET() {
-      const users = db
-        .query(`
-          SELECT
-            ${PUBLIC_FIELDS},
-            positions.title AS position_title,
-            positions.department AS position_department
-          FROM users
-          LEFT JOIN positions
-            ON positions.id = users.position_id
-          ORDER BY users.id DESC
-        `)
-        .all();
+    // список всех пользователей — только для уровня MAX_LEVEL
+    GET: requireAuth(
+      async () => {
+        const rows = await db.query.users.findMany({
+          orderBy: (u, { desc }) => desc(u.id),
+          columns: PUBLIC_COLUMNS,
+        });
 
-      return Response.json(users);
-    },
+        return Response.json(rows);
+      },
+      { minLevel: MAX_LEVEL },
+    ),
 
+    // регистрация — публичный эндпоинт, выдаёт токен сразу
     async POST(req: Request) {
       const body = await req.json();
-
-      const {
-        email,
-        username,
-        password,
-        full_name,
-        avatar_url,
-        position_id,
-        role,
-        status,
-      } = body;
+      const { email, username, password, level } = body;
 
       if (!email || !username || !password) {
-        console.log(body);
         return Response.json(
           { error: "email, username and password are required" },
           { status: 400 },
-
         );
       }
 
       if (String(password).length < 8) {
-        console.log(body);
         return Response.json(
           { error: "password must be at least 8 characters" },
           { status: 400 },
         );
       }
 
-      if (role && !ROLES.includes(role)) {
-        console.log(body);
+      if (level !== undefined && !LEVELS.includes(level)) {
         return Response.json(
-          { error: `role must be one of: ${ROLES.join(", ")}` },
+          { error: `level must be one of: ${LEVELS.join(", ")}` },
           { status: 400 },
         );
       }
 
-      if (status && !STATUSES.includes(status)) {
-            console.log(body);
-        return Response.json(
-          { error: `status must be one of: ${STATUSES.join(", ")}` },
-          { status: 400 },
-        );
-      }
-
-      const duplicate = db
-        .query(`SELECT id FROM users WHERE email = ? OR username = ?`)
-        .get(email, username);
+      const duplicate = await db.query.users.findFirst({
+        where: or(eq(users.email, email), eq(users.username, username)),
+      });
 
       if (duplicate) {
         return Response.json(
@@ -95,125 +89,93 @@ export const userRoutes = {
         );
       }
 
-      if (position_id) {
-        const position = db
-          .query(`SELECT id FROM positions WHERE id = ?`)
-          .get(position_id);
-
-        if (!position) {
-          return Response.json(
-            { error: "Position not found" },
-            { status: 404 },
-          );
-        }
-      }
-
-      const result = db
-        .query(`
-          INSERT INTO users (
-            email, username, password_hash, full_name,
-            avatar_url, position_id, role, status
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `)
-        .run(
+      const [user] = await db
+        .insert(users)
+        .values({
           email,
           username,
-          await Bun.password.hash(password),
-          full_name ?? null,
-          avatar_url ?? null,
-          position_id ?? null,
-          role ?? "user",
-          status ?? "active",
-        );
+          passwordHash: await Bun.password.hash(password),
+          level: level ?? 1,
+        })
+        .returning(PUBLIC_RETURNING);
 
-      const user = db
-        .query(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = ?`)
-        .get(result.lastInsertRowid);
+      const token = await signAccessToken({ id: user.id, level: user.level });
+     const headers = new Headers();
 
-      return Response.json(user, { status: 201 });
+      headers.set("Set-Cookie", setAccessTokenCookie(token));
+
+      return Response.json({ user, token },
+         { status: 201,headers });
     },
   },
 
   "/api/users/:id": {
-    GET(req: Request & { params: { id: string } }) {
-      const id = Number(req.params.id);
-
-      if (!Number.isInteger(id)) {
+    // свой профиль — можно смотреть себе, чужой — только уровень MAX_LEVEL
+    GET: requireAuth(async (req: Request & { params: { id: string }; user: { id: number; level: number } }) => {
+      const id = parseId(req.params.id);
+      if (id === null) {
         return Response.json({ error: "Invalid user id" }, { status: 400 });
       }
 
-      const user = db
-        .query(`
-          SELECT
-            ${PUBLIC_FIELDS},
-            positions.title AS position_title,
-            positions.department AS position_department
-          FROM users
-          LEFT JOIN positions
-            ON positions.id = users.position_id
-          WHERE users.id = ?
-        `)
-        .get(id);
+      if (!isSelfOrLevel(req.user, id, MAX_LEVEL)) {
+        return Response.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, id),
+        columns: PUBLIC_COLUMNS,
+      });
 
       if (!user) {
         return Response.json({ error: "User not found" }, { status: 404 });
       }
 
       return Response.json(user);
-    },
+    }),
 
-    async PUT(req: Request & { params: { id: string } }) {
-      const id = Number(req.params.id);
-
-      if (!Number.isInteger(id)) {
+    PUT: requireAuth(async (req: Request & { params: { id: string }; user: { id: number; level: number } }) => {
+      const id = parseId(req.params.id);
+      if (id === null) {
         return Response.json({ error: "Invalid user id" }, { status: 400 });
       }
 
+      if (!isSelfOrLevel(req.user, id, MAX_LEVEL)) {
+        return Response.json({ error: "Forbidden" }, { status: 403 });
+      }
+
       const body = await req.json();
+      const { email, username, password, level } = body;
 
-      const {
-        email,
-        username,
-        password,
-        full_name,
-        avatar_url,
-        position_id,
-        role,
-        status,
-      } = body;
+      // менять level может только пользователь уровня MAX_LEVEL (и не себе — опционально)
+      if (level !== undefined && req.user.level < MAX_LEVEL) {
+        return Response.json(
+          { error: "Only a level 3 user can change level" },
+          { status: 403 },
+        );
+      }
 
-      const existing = db
-        .query(`SELECT id FROM users WHERE id = ?`)
-        .get(id);
+      const existing = await db.query.users.findFirst({
+        where: eq(users.id, id),
+      });
 
       if (!existing) {
         return Response.json({ error: "User not found" }, { status: 404 });
       }
 
-      if (role && !ROLES.includes(role)) {
+      if (level !== undefined && !LEVELS.includes(level)) {
         return Response.json(
-          { error: `role must be one of: ${ROLES.join(", ")}` },
-          { status: 400 },
-        );
-      }
-
-      if (status && !STATUSES.includes(status)) {
-        return Response.json(
-          { error: `status must be one of: ${STATUSES.join(", ")}` },
+          { error: `level must be one of: ${LEVELS.join(", ")}` },
           { status: 400 },
         );
       }
 
       if (email || username) {
-        const duplicate = db
-          .query(`
-            SELECT id
-            FROM users
-            WHERE (email = ? OR username = ?)
-              AND id != ?
-          `)
-          .get(email ?? "", username ?? "", id);
+        const duplicate = await db.query.users.findFirst({
+          where: and(
+            or(eq(users.email, email ?? ""), eq(users.username, username ?? "")),
+            ne(users.id, id),
+          ),
+        });
 
         if (duplicate) {
           return Response.json(
@@ -223,88 +185,59 @@ export const userRoutes = {
         }
       }
 
-      if (position_id !== undefined && position_id !== null) {
-        const position = db
-          .query(`SELECT id FROM positions WHERE id = ?`)
-          .get(position_id);
-
-        if (!position) {
-          return Response.json(
-            { error: "Position not found" },
-            { status: 404 },
-          );
-        }
-      }
-
-      const password_hash = password
+      const passwordHash = password
         ? await Bun.password.hash(password)
-        : null;
+        : undefined;
 
-      db.query(`
-        UPDATE users
-        SET
-          email         = COALESCE(?, email),
-          username      = COALESCE(?, username),
-          password_hash = COALESCE(?, password_hash),
-          full_name     = COALESCE(?, full_name),
-          avatar_url    = COALESCE(?, avatar_url),
-          position_id   = COALESCE(?, position_id),
-          role          = COALESCE(?, role),
-          status        = COALESCE(?, status),
-          updated_at    = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(
-        email ?? null,
-        username ?? null,
-        password_hash,
-        full_name ?? null,
-        avatar_url ?? null,
-        position_id ?? null,
-        role ?? null,
-        status ?? null,
-        id,
-      );
-
-      const user = db
-        .query(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = ?`)
-        .get(id);
+      const [user] = await db
+        .update(users)
+        .set({
+          email,
+          username,
+          passwordHash,
+          level,
+          updatedAt: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(eq(users.id, id))
+        .returning(PUBLIC_RETURNING);
 
       return Response.json(user);
-    },
+    }),
 
-    DELETE(req: Request & { params: { id: string } }) {
-      const id = Number(req.params.id);
+    DELETE: requireAuth(
+      async (req: Request & { params: { id: string }; user: { id: number; level: number } }) => {
+        const id = parseId(req.params.id);
+        if (id === null) {
+          return Response.json({ error: "Invalid user id" }, { status: 400 });
+        }
 
-      if (!Number.isInteger(id)) {
-        return Response.json({ error: "Invalid user id" }, { status: 400 });
-      }
+        const [{ count: topLevelCount }] = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(users)
+          .where(eq(users.level, MAX_LEVEL));
 
-      const admins = db
-        .query(`SELECT COUNT(*) AS count FROM users WHERE role = 'admin'`)
-        .get() as { count: number };
+        const target = await db.query.users.findFirst({
+          where: eq(users.id, id),
+          columns: { level: true },
+        });
 
-      const target = db
-        .query(`SELECT role FROM users WHERE id = ?`)
-        .get(id) as { role: string } | null;
+        if (!target) {
+          return Response.json({ error: "User not found" }, { status: 404 });
+        }
 
-      if (!target) {
-        return Response.json({ error: "User not found" }, { status: 404 });
-      }
+        if (target.level === MAX_LEVEL && topLevelCount <= 1) {
+          return Response.json(
+            { error: `Cannot delete the last level ${MAX_LEVEL} user` },
+            { status: 409 },
+          );
+        }
 
-      if (target.role === "admin" && admins.count <= 1) {
-        return Response.json(
-          { error: "Cannot delete the last admin" },
-          { status: 409 },
-        );
-      }
+        await db.delete(users).where(eq(users.id, id));
 
-      db.query(`DELETE FROM users WHERE id = ?`).run(id);
-
-      return Response.json({
-        success: true,
-        message: "User deleted",
-      });
-    },
+        return Response.json({ success: true, message: "User deleted" });
+      },
+      { minLevel: MAX_LEVEL },
+    ),
   },
 
   "/api/auth/login": {
@@ -319,49 +252,53 @@ export const userRoutes = {
         );
       }
 
-      const user = db
-        .query(`
-          SELECT id, email, username, password_hash, full_name,
-                 position_id, role, status
-          FROM users
-          WHERE email = ? OR username = ?
-        `)
-        .get(login, login) as
-        | {
-            id: number;
-            email: string;
-            username: string;
-            password_hash: string;
-            full_name: string | null;
-            position_id: number | null;
-            role: string;
-            status: string;
-          }
-        | null;
+      const user = await db.query.users.findFirst({
+        where: or(eq(users.email, login), eq(users.username, login)),
+      });
 
-      if (!user || !(await Bun.password.verify(password, user.password_hash))) {
-        return Response.json(
-          { error: "Invalid credentials" },
-          { status: 401 },
-        );
+      if (!user || !(await Bun.password.verify(password, user.passwordHash))) {
+        return Response.json({ error: "Invalid credentials" }, { status: 401 });
       }
 
-      if (user.status !== "active") {
-        return Response.json(
-          { error: `Account is ${user.status}` },
-          { status: 403 },
-        );
-      }
+      await db
+        .update(users)
+        .set({ lastLoginAt: sql`CURRENT_TIMESTAMP` })
+        .where(eq(users.id, user.id));
 
-      db.query(`
-        UPDATE users
-        SET last_login_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(user.id);
+      const { passwordHash, ...safe } = user;
+      const token = await signAccessToken({ id: user.id, level: user.level });
+     const headers = new Headers();
 
-      const { password_hash, ...safe } = user;
+    headers.set("Set-Cookie", setAccessTokenCookie(token));
 
-      return Response.json({ user: safe });
+      return Response.json({
+         user: safe, token 
+        },
+         {
+    status: 201,
+    headers,
+         }
+      );
     },
   },
+  "/api/auth/logout": {
+  async POST() {
+    const headers = new Headers();
+
+    headers.set(
+      "Set-Cookie",
+      clearAccessTokenCookie(),
+    );
+
+    return Response.json(
+      {
+        success: true,
+        message: "Logged out successfully",
+      },
+      {
+        headers,
+      },
+    );
+  },
+},  
 };

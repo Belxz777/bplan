@@ -10,6 +10,7 @@ import {
   User as UserIcon,
   Shield,
   Briefcase,
+  Forward,
 } from 'lucide-react';
 import type { EntityView, User } from '../..//types';
 
@@ -52,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-[#0284c7]/20 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8]">
-            <Database className="w-4 h-4" />
+            <Forward className="w-4 h-4" />
           </div>
           <span className="font-semibold text-[#f0f6fc] text-[15px] tracking-tight">
             Plan B
@@ -61,16 +62,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="h-4 w-px bg-[#30363d]" />
 
-        {/* Project / DB Status button */}
-        <button
-          onClick={onOpenProjectModal}
-          className="flex items-center gap-2 bg-[#0d1117] hover:bg-[#262a31] px-2.5 py-1 rounded-md border border-[#21262d] text-xs transition-colors cursor-pointer group"
-          title="Параметры базы данных"
-        >
-          <div className="h-2 w-2 rounded-full bg-[#4ade80] animate-pulse" />
-          <span className="font-mono text-[#f0f6fc] font-medium">База данных</span>
-          <ChevronDown className="w-3.5 h-3.5 text-[#6e7681] group-hover:text-[#f0f6fc] transition-colors" />
-        </button>
+     
+    
       </div>
 
       {/* Central Search Bar with ⌘K */}
@@ -94,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Header Actions */}
       <div className="flex items-center gap-2.5">
         {/* Contextual Quick Add Button */}
-        {currentView === 'tasks' && (
+        {/* {currentView === 'tasks' && (
           <button
             onClick={onOpenNewTask}
             className="h-8 px-2.5 rounded-md bg-[#0284c7] hover:bg-[#38bdf8] text-white hover:text-[#0b0f19] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
@@ -132,28 +125,28 @@ export const Header: React.FC<HeaderProps> = ({
             <Plus className="w-3.5 h-3.5" />
             <span> Должность</span>
           </button>
-        )}
+        )} */}
 
         <div className="h-4 w-px bg-[#30363d] mx-0.5" />
 
         {/* REST API Explorer Button */}
-        <button
+        {/* <button
           onClick={onOpenApiExplorer}
           className="h-8 px-2.5 rounded-md bg-[#0d1117] hover:bg-[#1c2026] border border-[#21262d] flex items-center gap-1.5 text-xs font-mono text-[#7bd0ff] hover:text-[#f0f6fc] transition-colors cursor-pointer"
           title="Интерактивный просмотр API эндпоинтов"
         >
           <Code2 className="w-3.5 h-3.5 text-[#38bdf8]" />
           <span>API</span>
-        </button>
+        </button> */}
 
         {/* Export Data Button */}
-        <button
+        {/* <button
           onClick={onExportData}
           className="h-8 w-8 rounded-md bg-[#0d1117] hover:bg-[#1c2026] border border-[#21262d] flex items-center justify-center text-[#8b949e] hover:text-[#f0f6fc] transition-colors cursor-pointer"
           title="Экспорт базы данных в JSON"
         >
           <Download className="w-4 h-4" />
-        </button>
+        </button> */}
 
         <div className="h-4 w-px bg-[#30363d] mx-0.5" />
 

@@ -1,5 +1,6 @@
 import { db } from "../db";
 
+
 interface DatabaseStats {
   sqliteVersion: string;
   journalMode: string;

@@ -16,14 +16,8 @@ import type {
 } from '../types/index';
 import { TableView } from './components/TableView';
 import { CrudDrawer } from './components/CrudDrawer';
-import { ProjectSwitcherModal } from './components/ProjectSwitcherModal';
 import { CommandPalette } from './components/CommandPallete';
-import { ApiExplorerModal } from './components/ApiExplorerModal';
 import { Sidebar } from './components/Sidebar';
-
-
-import { UsersTableView } from './components/UsersTableView';
-import { PositionsTableView } from './components/PositionsTable'
 import { LoginPage } from './components/LoginPage';
 
 
@@ -32,20 +26,18 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Active view state: 'tasks' | 'plans' | 'users' | 'positions'
+  // Active view state: 'tasks' | 'plans' | 'users' |
   const [currentView, setCurrentView] = useState<EntityView>('tasks');
 
   // Data collections
   const [tasks, setTasks] = useState<Task[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [positions, setPositions] = useState<Position[]>([]);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
 
   // Loading states
   const [loading, setLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [positionsLoading, setPositionsLoading] = useState(false);
   const [queryLatencyMs, setQueryLatencyMs] = useState('0.8ms');
 
   // Filters & Sorting for Tasks/Plans
@@ -64,7 +56,11 @@ export default function App() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
-
+  //Sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toogleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
   // Modals
   const [apiExplorerOpen, setApiExplorerOpen] = useState(false);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
@@ -155,21 +151,7 @@ export default function App() {
     }
   }, []);
 
-  // Fetch Positions
-  const fetchPositions = useCallback(async () => {
-    setPositionsLoading(true);
-    try {
-      const res = await fetch('/api/positions');
-      if (res.ok) {
-        const data = await res.json();
-        setPositions(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch positions:', err);
-    } finally {
-      setPositionsLoading(false);
-    }
-  }, []);
+ 
 
   // Load all initial data
   useEffect(() => {
@@ -177,8 +159,7 @@ export default function App() {
     fetchPlans();
     fetchTasks();
     fetchUsers();
-    fetchPositions();
-  }, [fetchStats, fetchPlans, fetchTasks, fetchUsers, fetchPositions]);
+  }, [fetchStats, fetchPlans, fetchTasks, fetchUsers]);
 
   // Handle Login Success
   const handleLoginSuccess = (user: User) => {
@@ -209,14 +190,28 @@ export default function App() {
   };
 
   // Handle Logout
-  const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Даже если запрос завершился ошибкой,
+    // локальное состояние всё равно сбрасываем.
+  } finally {
     setCurrentUser(null);
+
     try {
-      localStorage.removeItem('bplan_active_user');
+      localStorage.removeItem("bplan_active_user");
     } catch {
       // ignore
     }
-  };
+
+    window.location.href = "/auth/login";
+  }
+};
+
 
   // Handle Sort Toggle
   const handleSortChange = (column: string) => {
@@ -337,7 +332,7 @@ export default function App() {
     }
 
     await fetchUsers();
-    await fetchPositions();
+  
     await fetchStats();
   };
 
@@ -349,45 +344,13 @@ export default function App() {
         throw new Error(err.error || 'Не удалось удалить пользователя');
       }
       await fetchUsers();
-      await fetchPositions();
       await fetchStats();
     }
   };
 
-  // Position CRUD
-  const handleSavePosition = async (positionData: Partial<Position>) => {
-    const isEdit = Boolean(positionData.id);
-    const url = isEdit ? `/api/positions/${positionData.id}` : '/api/positions';
-    const method = isEdit ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(positionData),
-    });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Не удалось сохранить должность');
-    }
 
-    await fetchPositions();
-    await fetchUsers();
-    await fetchStats();
-  };
-
-  const handleDeletePosition = async (id: number) => {
-    if (confirm(`Вы уверены, что хотите удалить должность #${id}?`)) {
-      const res = await fetch(`/api/positions/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Не удалось удалить должность');
-      }
-      await fetchPositions();
-      await fetchUsers();
-      await fetchStats();
-    }
-  };
 
   // Batch actions
   const handleBatchStatusChange = async (status: TaskStatus) => {
@@ -436,17 +399,8 @@ export default function App() {
   const handleExportData = () => {
     window.location.href = '/api/db/export';
   };
+// Reset Database
 
-  // Reset Database
-  const handleResetDatabase = async () => {
-    await fetch('/api/db/reset', { method: 'POST' });
-    setSelectedTaskIds([1, 2]);
-    await fetchPlans();
-    await fetchTasks();
-    await fetchUsers();
-    await fetchPositions();
-    await fetchStats();
-  };
 
   // IF NOT LOGGED IN: Render Login Page by default!
   if (!currentUser) {
@@ -493,14 +447,17 @@ export default function App() {
       {/* Main Workspace: Sidebar + Central Table + CRUD Drawer */}
       <div className="flex-1 flex overflow-hidden">
         {/* Minimal Application Sidebar */}
-        <Sidebar
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          stats={stats}
-          activeFilters={activeFilters}
-          onFilterChange={handleFilterChange}
-          onClearFilters={handleClearFilters}
-        />
+    
+          <Sidebar
+            currentView={currentView}
+            onViewChange={setCurrentView}
+            isOpened={isSidebarOpen}
+            toogle={toogleSidebar}
+            stats={stats}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={handleClearFilters}
+            />
 
         {/* Center Workspace: Data Grid & Controls */}
         {currentView === 'tasks' || currentView === 'plans' ? (
@@ -550,36 +507,7 @@ export default function App() {
               handleFilterChange({ plan_id: planId });
             }}
           />
-        ) : currentView === 'users' ? (
-          <UsersTableView
-            users={users}
-            positions={positions}
-            loading={usersLoading}
-            onOpenNewUser={() => {
-              setEditingUser(null);
-              setDrawerMode('new-user');
-            }}
-            onEditUser={(user) => {
-              setEditingUser(user);
-              setDrawerMode('edit-user');
-            }}
-            onDeleteUser={handleDeleteUser}
-          />
-        ) : (
-          <PositionsTableView
-            positions={positions}
-            loading={positionsLoading}
-            onOpenNewPosition={() => {
-              setEditingPosition(null);
-              setDrawerMode('new-position');
-            }}
-            onEditPosition={(position) => {
-              setEditingPosition(position);
-              setDrawerMode('edit-position');
-            }}
-            onDeletePosition={handleDeletePosition}
-          />
-        )}
+        ) : <h1>hee</h1>}
 
         {/* Side Drawer: CRUD Editor */}
         <CrudDrawer
@@ -589,7 +517,6 @@ export default function App() {
           initialUser={editingUser}
           initialPosition={editingPosition}
           plans={plans}
-          positions={positions}
           onClose={() => setDrawerMode('none')}
           onSaveTask={handleSaveTask}
           onDeleteTask={handleDeleteTask}
@@ -597,31 +524,12 @@ export default function App() {
           onDeletePlan={handleDeletePlan}
           onSaveUser={handleSaveUser}
           onDeleteUser={handleDeleteUser}
-          onSavePosition={handleSavePosition}
-          onDeletePosition={handleDeletePosition}
-        />
+       />
       </div>
 
-      {/* API Explorer Modal (for testing all bplan endpoints) */}
-      <ApiExplorerModal
-        isOpen={apiExplorerOpen}
-        onClose={() => setApiExplorerOpen(false)}
-        onDatabaseMutated={() => {
-          fetchTasks();
-          fetchPlans();
-          fetchUsers();
-          fetchPositions();
-          fetchStats();
-        }}
-      />
+  
 
-      {/* Database Connection & Settings Modal */}
-      <ProjectSwitcherModal
-        isOpen={projectModalOpen}
-        onClose={() => setProjectModalOpen(false)}
-        stats={stats}
-        onResetDatabase={handleResetDatabase}
-      />
+  
 
       {/* ⌘K Command Palette */}
       <CommandPalette
@@ -630,7 +538,6 @@ export default function App() {
         tasks={tasks}
         plans={plans}
         users={users}
-        positions={positions}
         onSelectTask={(task) => {
           setCurrentView('tasks');
           setEditingTask(task);
@@ -645,11 +552,6 @@ export default function App() {
           setCurrentView('users');
           setEditingUser(user);
           setDrawerMode('edit-user');
-        }}
-        onSelectPosition={(pos) => {
-          setCurrentView('positions');
-          setEditingPosition(pos);
-          setDrawerMode('edit-position');
         }}
         onViewChange={setCurrentView}
         onOpenNewTask={() => {
@@ -667,11 +569,7 @@ export default function App() {
           setEditingUser(null);
           setDrawerMode('new-user');
         }}
-        onOpenNewPosition={() => {
-          setCurrentView('positions');
-          setEditingPosition(null);
-          setDrawerMode('new-position');
-        }}
+   
         onOpenApiExplorer={() => setApiExplorerOpen(true)}
         onExportData={handleExportData}
         onFilterStatus={(st) => {
